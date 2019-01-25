@@ -24,6 +24,7 @@ class CliColors:
 # set variables
 counter = 1
 viewports = {375, 768, 1024, 1400}
+folder_website = ''
 num_total_screenshots = 0
 num_zpadding = 1
 
@@ -80,7 +81,7 @@ def take_screenshot(driver, slug, locator):
             locator_mode, locator_value = locator.split('=')
             driver.find_element_by_class_name(locator_value).click()
 
-        if driver.save_screenshot('output/' + file_name):
+        if driver.save_screenshot('output/' + folder_website + '/' + file_name):
             color = CliColors.OKGREEN
         else:
             color = CliColors.FAIL
@@ -90,11 +91,9 @@ def take_screenshot(driver, slug, locator):
     counter += 1
 
 
-def create_output_folder():
-    shutil.rmtree('output')
-
+def create_folder(name):
     try:
-        os.makedirs('output')
+        os.makedirs(name)
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
@@ -133,8 +132,33 @@ def process_data(driver):
     f.close()
 
 
+def build_folder_name(base):
+    if '@' in base:
+        auth, url = base.split('@')
+    else:
+        url = re.sub(
+            "https://",
+            "",
+            base
+        )
+
+    url = re.sub(
+        r"[/]",
+        "-",
+        url
+    )
+
+    return url
+
+
 def main():
-    create_output_folder()
+    global folder_website
+    folder_website = build_folder_name(args.base)
+
+    create_folder('output')
+    shutil.rmtree('output/' + folder_website)
+    create_folder('output/' + folder_website)
+
     driver = start_webdriver()
     process_data(driver)
     driver.quit()
