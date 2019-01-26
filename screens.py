@@ -10,7 +10,7 @@ import re
 from selenium import webdriver
 
 
-class CliColors:
+class Color:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -37,6 +37,14 @@ parser.add_argument(
     type=str,
     required=True,
     help='base url, e. g. https://www.google.at (without ending "/")'
+)
+parser.add_argument(
+    '-p',
+    '--pages',
+    metavar='',
+    type=str,
+    required=True,
+    help='name of text file containing the webpages (`pages*.txt`)'
 )
 
 args = parser.parse_args()
@@ -82,11 +90,11 @@ def take_screenshot(driver, slug, locator):
             driver.find_element_by_class_name(locator_value).click()
 
         if driver.save_screenshot('output/' + folder_website + '/' + file_name):
-            color = CliColors.OKGREEN
+            color = Color.OKGREEN
         else:
-            color = CliColors.FAIL
+            color = Color.FAIL
 
-        print(color + '📷' + CliColors.ENDC)
+        print(color + '📷' + Color.ENDC)
 
     counter += 1
 
@@ -107,8 +115,12 @@ def start_webdriver():
     return webdriver.Chrome(options=options)
 
 
+def stop_webdriver(driver):
+    driver.quit()
+
+
 def process_data(driver):
-    f = open('screens.txt')
+    f = open(args.pages)
 
     # calculate maximum number of screenshots
     global num_total_screenshots
@@ -152,6 +164,16 @@ def build_folder_name(base):
 
 
 def main():
+    print()
+
+    # check if the parameters are correct
+    if not os.path.isfile(args.pages):
+        print(
+            Color.FAIL + '[ERROR]' + Color.ENDC
+            + ' The file `' + args.pages + '` could not be found'
+        )
+        exit(1)
+
     global folder_website
     folder_website = build_folder_name(args.base)
 
@@ -161,7 +183,7 @@ def main():
 
     driver = start_webdriver()
     process_data(driver)
-    driver.quit()
+    stop_webdriver(driver)
 
 
 if __name__ == '__main__':
