@@ -22,6 +22,25 @@ class Color:
     UNDERLINE = '\033[4m'
 
 
+class Output:
+    MSG_ERROR = 'error'
+    MSG_OK = 'ok'
+
+    @staticmethod
+    def print(msg_type, value):
+        if msg_type == Output.MSG_ERROR:
+            color = Color.FAIL
+            status = Output.MSG_ERROR
+        else:
+            color = Color.OKGREEN
+            status = Output.MSG_ERROR
+
+        print(
+            color + '[' + status.upper() + ']' + Color.ENDC
+            + ' ' + value
+        )
+
+
 # set variables
 pages = {}
 url = ''
@@ -45,7 +64,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-def take_screenshot(driver, slug, locator):
+def take_screenshot(driver, slug, selenium):
     global counter
 
     for viewport in viewports:
@@ -80,9 +99,19 @@ def take_screenshot(driver, slug, locator):
         driver.set_window_size(viewport, required_height)
 
         # make some Selenium magic
-        if locator != '':
-            locator_mode, locator_value = locator.split('=')
-            driver.find_element_by_class_name(locator_value).click()
+        if selenium:
+            locator_mode, locator_value = selenium['locator'].split('=')
+            if locator_mode == 'class':
+                driver.find_element_by_class_name(locator_value).click()
+            elif locator_mode == 'id':
+                driver.find_element_by_id(locator_value).click()
+            else:
+                Output.print(
+                    Output.MSG_ERROR,
+                    'locator mode `' + locator_mode + '` not defined, please use `class` or `id`'
+                )
+                stop_webdriver(driver)
+                exit(1)
 
         if driver.save_screenshot('output/' + folder_website + '/' + file_name):
             color = Color.OKGREEN
@@ -121,11 +150,20 @@ def process_data(driver):
     :return:
     """
     for page in pages:
-        locator = ''
-        if 'selenium' in page:
-            print(page['selenium'])
+        if 'ignore' in page and page['ignore'] == True:
+            continue
 
-        take_screenshot(driver, page['slug'], locator)
+        selenium = {}
+        if 'selenium' in page:
+            selenium = {
+                "locator": page['selenium']['locator']
+            }
+
+        take_screenshot(
+            driver,
+            page['slug'],
+            selenium
+        )
 
 
 def build_folder_name(string):
@@ -156,9 +194,9 @@ def build_folder_name(string):
 def init():
     # check if configuration file is present
     if not os.path.isfile(args.config):
-        print(
-            Color.FAIL + '[ERROR]' + Color.ENDC
-            + ' The configuration file `' + args.config + '` could not be found'
+        Output.print(
+            Output.MSG_ERROR,
+            'the configuration file `' + args.config + '` could not be found'
         )
         exit(1)
 

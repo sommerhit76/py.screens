@@ -26,13 +26,13 @@ The configuration is saved in a file called `pages--myconfig.json`.
             "slug": "/"
         },
         {
-            "slug": "/faqs"
+            "slug": "/faqs",
+            "ignore": true
         },
         {
             "slug": "/faqs",
             "selenium": {
-                "locator": "class=js-open-accordion",
-                "action": "click"
+                "locator": "class=js-open-accordion"
             }
         }
     ]
