@@ -149,7 +149,7 @@ def build_folder_name(base):
         auth, url = base.split('@')
     else:
         url = re.sub(
-            "https://",
+            "http[s]?://",
             "",
             base
         )
@@ -174,11 +174,14 @@ def main():
         )
         exit(1)
 
+    # build folder structure
     global folder_website
     folder_website = build_folder_name(args.base)
 
-    create_folder('output')
-    shutil.rmtree('output/' + folder_website)
+    if not os.path.isdir('output'):
+        create_folder('output')
+    if os.path.isdir('output/' + folder_website):
+        shutil.rmtree('output/' + folder_website)
     create_folder('output/' + folder_website)
 
     driver = start_webdriver()
