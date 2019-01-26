@@ -4,6 +4,7 @@
 import os
 import errno
 import argparse
+import json
 import shutil
 import re
 
@@ -22,6 +23,8 @@ class Color:
 
 
 # set variables
+pages = {}
+url = ''
 counter = 1
 viewports = {375, 768, 1024, 1400}
 folder_website = ''
@@ -31,20 +34,12 @@ num_zpadding = 1
 # parse command line args
 parser = argparse.ArgumentParser(description='Take screenshots of a website in different viewport widths.')
 parser.add_argument(
-    '-b',
-    '--base',
+    '-c',
+    '--config',
     metavar='',
     type=str,
     required=True,
-    help='base url, e. g. https://www.google.at (without ending "/")'
-)
-parser.add_argument(
-    '-p',
-    '--pages',
-    metavar='',
-    type=str,
-    required=True,
-    help='name of text file containing the webpages (`pages*.txt`)'
+    help='name of configuration file'
 )
 
 args = parser.parse_args()
@@ -80,7 +75,7 @@ def take_screenshot(driver, slug, locator):
 
         # open web page
         driver.set_window_size(viewport, 400)
-        driver.get(args.base + slug)
+        driver.get(url + slug)
         required_height = driver.execute_script('return document.body.parentNode.scrollHeight')
         driver.set_window_size(viewport, required_height)
 
@@ -120,63 +115,69 @@ def stop_webdriver(driver):
 
 
 def process_data(driver):
-    f = open(args.pages)
+    """
+    iterate through dict `pages` to take screenshots
+    :param driver:
+    :return:
+    """
+    for page in pages:
+        locator = ''
+        if 'selenium' in page:
+            print(page['selenium'])
 
-    # calculate maximum number of screenshots
-    global num_total_screenshots
-    num_total_screenshots = sum(1 for line in f)
-
-    f.seek(0)
-    for line in f:
-        line = line.strip()
-        if line[0:1] == '#' or line[0:1] == ' ':
-            continue
-
-        # extract Selenium action
-        if ';' in line:
-            slug, locator = line.split(';')
-        else:
-            slug = line
-            locator = ''
-
-        take_screenshot(driver, slug, locator)
-
-    f.close()
+        take_screenshot(driver, page['slug'], locator)
 
 
-def build_folder_name(base):
-    if '@' in base:
-        auth, url = base.split('@')
+def build_folder_name(string):
+    """
+    Removes or replaces characters from the url that cannot be used for folder names
+    :param string:
+    :return:
+    """
+
+    if '@' in url:
+        auth, base = string.split('@')
     else:
-        url = re.sub(
-            "http[s]?://",
+        base = re.sub(
+            "^http[s]?://",
             "",
-            base
+            string
         )
 
-    url = re.sub(
+    base = re.sub(
         r"[/]",
         "-",
-        url
+        base
     )
 
-    return url
+    return base
+
+
+def init():
+    # check if configuration file is present
+    if not os.path.isfile(args.config):
+        print(
+            Color.FAIL + '[ERROR]' + Color.ENDC
+            + ' The configuration file `' + args.config + '` could not be found'
+        )
+        exit(1)
+
+    # read configuration file
+    global pages, url
+    with open(args.config) as json_data_file:
+        data = json.load(json_data_file)
+
+    pages = data['pages']
+    url = data['url']
 
 
 def main():
     print()
-
-    # check if the parameters are correct
-    if not os.path.isfile(args.pages):
-        print(
-            Color.FAIL + '[ERROR]' + Color.ENDC
-            + ' The file `' + args.pages + '` could not be found'
-        )
-        exit(1)
+    init()
 
     # build folder structure
     global folder_website
-    folder_website = build_folder_name(args.base)
+    folder_website = build_folder_name(url)
 
     if not os.path.isdir('output'):
         create_folder('output')
