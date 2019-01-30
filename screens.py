@@ -6,7 +6,7 @@ import argparse
 import json
 import shutil
 
-from selenium import webdriver
+from Classes.driver import Driver
 from Classes.output import Output
 from Classes.file_system import FileSystem
 from Classes.page import Page
@@ -29,20 +29,11 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-def start_webdriver():
-    options = webdriver.ChromeOptions()
-    options.add_argument('headless')
-    options.add_argument('log-level=2')
-
-    return webdriver.Chrome(options=options)
-
-
-def process_data():
+def process_data(driver):
     """
     iterate through dict `pages` to take screenshots
     :return:
     """
-    driver = start_webdriver()
     counter = 1
 
     for page in pages:
@@ -99,7 +90,14 @@ def init():
 def main():
     print()
     init()
-    process_data()
+
+    d = Driver(browser='chrome')
+    driver = d.start_webdriver()
+    process_data(driver)
+
+    d = Driver(browser='firefox')
+    driver = d.start_webdriver()
+    process_data(driver)
 
 
 if __name__ == '__main__':

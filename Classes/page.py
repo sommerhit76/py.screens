@@ -39,8 +39,8 @@ class Page:
             file_name = str(counter).zfill(self.num_zpadding) \
                         + '__w' \
                         + str(viewport).zfill(4) \
-                        + '__' \
-                        + slug_cleaned
+                        + '__' + slug_cleaned \
+                        + '__' + driver.name
             file_name = file_name.rstrip('_') + '.png'
             print(file_name, end=' ', flush=True)
 
